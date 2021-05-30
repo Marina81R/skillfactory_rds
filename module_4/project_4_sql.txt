@@ -1,30 +1,255 @@
-‡адание 4.1
-Ѓаза данных содержит список аэропортов практически всех крупных городов ђоссии. ‚ большинстве городов есть только один аэропорт. €сключение составлЯет:SELECT a.city,       count(airport_code)FROM dst_project.airports aGROUP BY 1ORDER BY 2 DESC*****
-‡адание 4.2
-‚опрос 1.К’аблица рейсов содержит всю информацию о прошлых, текущих и запланированных рейсах. ‘колько всего статусов длЯ рейсов определено в таблице?SELECT count(DISTINCT f.status)FROM dst_project.flights f
-‚опрос 2.КЉакое количество самолетов находЯтсЯ в воздухе на момент среза в базе (статус рейса ЗсамолЮт уже вылетел и находитсЯ в воздухеИ).SELECT count(f.flight_id)FROM dst_project.flights fWHERE status = 'Departed'
-‚опрос 3.КЊеста определЯют схему салона каждой модели. ‘колько мест имеет самолет моделиКК773 (Boeing 777-300)?SELECT count(s.seat_no)FROM dst_project.seats sJOIN dst_project.aircrafts a ON a.aircraft_code = s.aircraft_codeWHERE model = 'Boeing 777-300'
-‚опрос 4.К‘колько состоЯвшихсЯ (фактических) рейсов было совершено между 1 апрелЯ 2017 года и 1 сентЯбрЯ 2017 года?SELECT count(f.flight_id)FROM dst_project.flights fWHERE scheduled_arrival BETWEEN '2017-04-01' AND '2017-09-01'  AND f.status = 'Arrived'*****
-‡адание 4.3
-‚опрос 1.К‘колько всего рейсов было отменено по данным базы?SELECT count(f.flight_id)FROM dst_project.flights fWHERE f.status = 'Cancelled'
-‚опрос 2.К‘колько самолетов моделей типаКBoeing, Sukhoi Superjet, AirbusКнаходитсЯ в базе авиаперевозок?SELECT 'Boeing' date_type,                count(DISTINCT a.model)FROM dst_project.aircrafts aWHERE a.model like 'Boeing%'UNION ALLSELECT 'Sukhoi Superjet' date_type,                         count(DISTINCT a.model)FROM dst_project.aircrafts aWHERE a.model like 'Sukhoi Superjet%'UNION ALLSELECT 'Airbus' date_type,                count(DISTINCT a.model)FROM dst_project.aircrafts aWHERE a.model like 'Airbus%'
-‚опрос 3.К‚ какой части (частЯх) света находитсЯ больше аэропортов?SELECT CASE           WHEN a.timezone like 'Asia%' THEN 'Asia'           WHEN a.timezone like 'Eu%' THEN 'Europe'           ELSE 'others'       END AS timezone,       count(*)FROM dst_project.airports aGROUP BY 1€лиSELECT 'Asia' date_type,              count(a.timezone)FROM dst_project.airports aWHERE a.timezone like 'Asia%'UNIONSELECT 'Europe' date_type,                count(a.timezone)FROM dst_project.airports aWHERE a.timezone like 'Euro%'UNIONSELECT 'Australia' date_type,                   count(a.timezone)FROM dst_project.airports aWHERE a.timezone like 'Aust%'ORDER BY 2 DESC‚опрос 4.К“ какого рейса была самаЯ большаЯ задержка прибытиЯ за все времЯ сбора данных? ‚ведитеКidКрейса (flight_id).КSELECT f.flight_id,       max(f.actual_arrival - scheduled_arrival)FROM dst_project.flights fWHERE f.scheduled_arrival IS NOT NULL  AND f.actual_arrival IS NOT NULLGROUP BY 1ORDER BY 2 DESCLIMIT 1*****
-‡адание 4.4
-‚опрос 1.КЉогда был запланирован самый первый вылет, сохраненный в базе данных?SELECT min(f.scheduled_departure)FROM dst_project.flights f‚опрос 2.К‘колько минут составлЯет запланированное времЯ полета в самом длительном рейсе?SELECT date_part('hour', max(f.scheduled_arrival - f.scheduled_departure))*60 + date_part('minute', max(f.scheduled_arrival - f.scheduled_departure)) max_flight_timeFROM dst_project.flights f
-‚опрос 3.КЊежду какими аэропортами пролегает самый длительный по времени запланированный рейс?SELECT f.departure_airport,       f.arrival_airport,       (f.scheduled_arrival - f.scheduled_departure) time_scheduledFROM dst_project.flights fORDER BY 3 DESCLIMIT 1
-‚опрос 4.К‘колько составлЯет среднЯЯ дальность полета среди всех самолетов в минутах? ‘екунды округлЯютсЯ в меньшую сторону (отбрасываютсЯ до минут).WITH avg_time AS  (SELECT avg(f.actual_arrival - f.actual_departure) avg_flight_time   FROM dst_project.flights f   WHERE f.actual_arrival IS NOT NULL     AND f.actual_departure IS NOT NULL ),     minute_time AS  (SELECT date_trunc('minute', avg(av_t.avg_flight_time)) min_time   FROM avg_time AS av_t)SELECT time_avg.min_time AS mean_total_as_is,       (date_part('hour', time_avg.min_time)*60 + date_part('minute', time_avg.min_time)) AS in_minutesFROM minute_time AS time_avg*****‡адание 4.5
-‚опрос 1.КЊест какого класса уКSU9Кбольше всего?SELECT s.fare_conditions,       count(s.seat_no)FROM dst_project.seats sWHERE aircraft_code = 'SU9'GROUP BY 1ORDER BY 2 DESCLIMIT 1
-‚опрос 2.КЉакую самую минимальную стоимость составило бронирование за всю историю?SELECT min(b.total_amount)FROM dst_project.bookings b
-‚опрос 3.КЉакой номер места был у пассажира сКid = 4313 788533?SELECT t.passenger_id,       b.seat_noFROM dst_project.tickets tJOIN dst_project.boarding_passes b ON t.ticket_no = b.ticket_noWHERE t.passenger_id = '4313 788533'*****
-‡адание 5.1
-‚опрос 1.КЂнапа С курортный город на юге ђоссии. ‘колько рейсов прибыло в Ђнапу за 2017 год?
-SELECT a.city,       count(f.flight_id)FROM dst_project.airports aJOIN dst_project.flights f ON a.airport_code = f.arrival_airportWHERE city = 'Anapa'  AND f.status = 'Arrived'  AND f.actual_arrival BETWEEN '2017-01-01' AND '2017-12-31'GROUP BY 1
-‚опрос 2.К‘колько рейсов из Ђнапы вылетело зимой 2017 года?SELECT a.city,       count(f.flight_id)FROM dst_project.airports aJOIN dst_project.flights f ON a.airport_code = f.arrival_airportWHERE city = 'Anapa'  AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01',                                                      '2017-02-01',                                                      '2017-12-31'))  AND f.status not in ('Cancelled')GROUP BY 1‚опрос 3.КЏосчитайте количество отмененных рейсов из Ђнапы за все времЯ.SELECT f.departure_airport,       count(f.flight_id)FROM dst_project.airports aJOIN dst_project.flights f ON a.airport_code = f.arrival_airportWHERE f.departure_airport = 'AAQ'  AND f.status = 'Cancelled'GROUP BY 1
-‚опрос 4.К‘колько рейсов из Ђнапы не летают в Њоскву?WITH Moscow_airports AS  (SELECT a.city,          a.airport_code   FROM dst_project.airports a   WHERE a.city in ('Moscow')   GROUP BY 1,            2)SELECT count(f.flight_id)FROM dst_project.flights fWHERE departure_airport = 'AAQ'  AND f.arrival_airport not in    (SELECT Moscow_airports.airport_code     FROM Moscow_airports)
-‚опрос 5.КЉакаЯ модель самолета летЯщего на рейсах из Ђнапы имеет больше всего мест?Њеста определЯют схему салона каждой модели. ‘колько мест имеет самолет моделиКК773 (Boeing 777-300)?SELECT count(s.seat_no)FROM dst_project.seats sJOIN dst_project.aircrafts a ON a.aircraft_code = s.aircraft_codeWHERE model = 'Boeing 777-300'*****
+Р—Р°РґР°РЅРёРµ 4.1
 
-€тоговый дотасет
-WITH fly AS
+Р‘Р°Р·Р° РґР°РЅРЅС‹С… СЃРѕРґРµСЂР¶РёС‚ СЃРїРёСЃРѕРє Р°СЌСЂРѕРїРѕСЂС‚РѕРІ РїСЂР°РєС‚РёС‡РµСЃРєРё РІСЃРµС… РєСЂСѓРїРЅС‹С… РіРѕСЂРѕРґРѕРІ Р РѕСЃСЃРёРё. Р’ Р±РѕР»СЊС€РёРЅСЃС‚РІРµ РіРѕСЂРѕРґРѕРІ РµСЃС‚СЊ С‚РѕР»СЊРєРѕ РѕРґРёРЅ Р°СЌСЂРѕРїРѕСЂС‚. РСЃРєР»СЋС‡РµРЅРёРµ СЃРѕСЃС‚Р°РІР»СЏРµС‚:
+
+SELECT a.city,
+       count(airport_code)
+FROM dst_project.airports a
+GROUP BY 1
+ORDER BY 2 DESC
+
+*****
+
+Р—Р°РґР°РЅРёРµ 4.2
+
+Р’РѕРїСЂРѕСЃ 1.В РўР°Р±Р»РёС†Р° СЂРµР№СЃРѕРІ СЃРѕРґРµСЂР¶РёС‚ РІСЃСЋ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РїСЂРѕС€Р»С‹С…, С‚РµРєСѓС‰РёС… Рё Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹С… СЂРµР№СЃР°С…. РЎРєРѕР»СЊРєРѕ РІСЃРµРіРѕ СЃС‚Р°С‚СѓСЃРѕРІ РґР»СЏ СЂРµР№СЃРѕРІ РѕРїСЂРµРґРµР»РµРЅРѕ РІ С‚Р°Р±Р»РёС†Рµ?
+
+SELECT count(DISTINCT f.status)
+FROM dst_project.flights f
+
+
+Р’РѕРїСЂРѕСЃ 2.В РљР°РєРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃР°РјРѕР»РµС‚РѕРІ РЅР°С…РѕРґСЏС‚СЃСЏ РІ РІРѕР·РґСѓС…Рµ РЅР° РјРѕРјРµРЅС‚ СЃСЂРµР·Р° РІ Р±Р°Р·Рµ (СЃС‚Р°С‚СѓСЃ СЂРµР№СЃР° В«СЃР°РјРѕР»С‘С‚ СѓР¶Рµ РІС‹Р»РµС‚РµР» Рё РЅР°С…РѕРґРёС‚СЃСЏ РІ РІРѕР·РґСѓС…РµВ»).
+
+SELECT count(f.flight_id)
+FROM dst_project.flights f
+WHERE status = 'Departed'
+
+
+Р’РѕРїСЂРѕСЃ 3.В РњРµСЃС‚Р° РѕРїСЂРµРґРµР»СЏСЋС‚ СЃС…РµРјСѓ СЃР°Р»РѕРЅР° РєР°Р¶РґРѕР№ РјРѕРґРµР»Рё. РЎРєРѕР»СЊРєРѕ РјРµСЃС‚ РёРјРµРµС‚ СЃР°РјРѕР»РµС‚ РјРѕРґРµР»РёВ В 773 (Boeing 777-300)?
+
+SELECT count(s.seat_no)
+FROM dst_project.seats s
+JOIN dst_project.aircrafts a ON a.aircraft_code = s.aircraft_code
+WHERE model = 'Boeing 777-300'
+
+Р’РѕРїСЂРѕСЃ 4.В РЎРєРѕР»СЊРєРѕ СЃРѕСЃС‚РѕСЏРІС€РёС…СЃСЏ (С„Р°РєС‚РёС‡РµСЃРєРёС…) СЂРµР№СЃРѕРІ Р±С‹Р»Рѕ СЃРѕРІРµСЂС€РµРЅРѕ РјРµР¶РґСѓ 1 Р°РїСЂРµР»СЏ 2017 РіРѕРґР° Рё 1 СЃРµРЅС‚СЏР±СЂСЏ 2017 РіРѕРґР°?
+
+SELECT count(f.flight_id)
+FROM dst_project.flights f
+WHERE scheduled_arrival BETWEEN '2017-04-01' AND '2017-09-01'
+  AND f.status = 'Arrived'
+
+*****
+
+Р—Р°РґР°РЅРёРµ 4.3
+
+Р’РѕРїСЂРѕСЃ 1.В РЎРєРѕР»СЊРєРѕ РІСЃРµРіРѕ СЂРµР№СЃРѕРІ Р±С‹Р»Рѕ РѕС‚РјРµРЅРµРЅРѕ РїРѕ РґР°РЅРЅС‹Рј Р±Р°Р·С‹?
+
+SELECT count(f.flight_id)
+FROM dst_project.flights f
+WHERE f.status = 'Cancelled'
+
+
+Р’РѕРїСЂРѕСЃ 2.В РЎРєРѕР»СЊРєРѕ СЃР°РјРѕР»РµС‚РѕРІ РјРѕРґРµР»РµР№ С‚РёРїР°В Boeing, Sukhoi Superjet, AirbusВ РЅР°С…РѕРґРёС‚СЃСЏ РІ Р±Р°Р·Рµ Р°РІРёР°РїРµСЂРµРІРѕР·РѕРє?
+
+SELECT 'Boeing' date_type,
+                count(DISTINCT a.model)
+FROM dst_project.aircrafts a
+WHERE a.model like 'Boeing%'
+UNION ALL
+SELECT 'Sukhoi Superjet' date_type,
+                         count(DISTINCT a.model)
+FROM dst_project.aircrafts a
+WHERE a.model like 'Sukhoi Superjet%'
+UNION ALL
+SELECT 'Airbus' date_type,
+                count(DISTINCT a.model)
+FROM dst_project.aircrafts a
+WHERE a.model like 'Airbus%'
+
+
+Р’РѕРїСЂРѕСЃ 3.В Р’ РєР°РєРѕР№ С‡Р°СЃС‚Рё (С‡Р°СЃС‚СЏС…) СЃРІРµС‚Р° РЅР°С…РѕРґРёС‚СЃСЏ Р±РѕР»СЊС€Рµ Р°СЌСЂРѕРїРѕСЂС‚РѕРІ?
+
+SELECT CASE
+           WHEN a.timezone like 'Asia%' THEN 'Asia'
+           WHEN a.timezone like 'Eu%' THEN 'Europe'
+           ELSE 'others'
+       END AS timezone,
+       count(*)
+FROM dst_project.airports a
+GROUP BY 1
+
+РР»Рё
+
+SELECT 'Asia' date_type,
+              count(a.timezone)
+FROM dst_project.airports a
+WHERE a.timezone like 'Asia%'
+UNION
+SELECT 'Europe' date_type,
+                count(a.timezone)
+FROM dst_project.airports a
+WHERE a.timezone like 'Euro%'
+UNION
+SELECT 'Australia' date_type,
+                   count(a.timezone)
+FROM dst_project.airports a
+WHERE a.timezone like 'Aust%'
+ORDER BY 2 DESC
+
+
+Р’РѕРїСЂРѕСЃ 4.В РЈ РєР°РєРѕРіРѕ СЂРµР№СЃР° Р±С‹Р»Р° СЃР°РјР°СЏ Р±РѕР»СЊС€Р°СЏ Р·Р°РґРµСЂР¶РєР° РїСЂРёР±С‹С‚РёСЏ Р·Р° РІСЃРµ РІСЂРµРјСЏ СЃР±РѕСЂР° РґР°РЅРЅС‹С…? Р’РІРµРґРёС‚РµВ idВ СЂРµР№СЃР° (flight_id).
+
+SELECT f.flight_id,
+       max(f.actual_arrival - scheduled_arrival)
+FROM dst_project.flights f
+WHERE f.scheduled_arrival IS NOT NULL
+  AND f.actual_arrival IS NOT NULL
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1
+
+*****
+
+Р—Р°РґР°РЅРёРµ 4.4
+
+Р’РѕРїСЂРѕСЃ 1.В РљРѕРіРґР° Р±С‹Р» Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅ СЃР°РјС‹Р№ РїРµСЂРІС‹Р№ РІС‹Р»РµС‚, СЃРѕС…СЂР°РЅРµРЅРЅС‹Р№ РІ Р±Р°Р·Рµ РґР°РЅРЅС‹С…?
+
+SELECT min(f.scheduled_departure)
+FROM dst_project.flights f
+
+
+Р’РѕРїСЂРѕСЃ 2.В РЎРєРѕР»СЊРєРѕ РјРёРЅСѓС‚ СЃРѕСЃС‚Р°РІР»СЏРµС‚ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРµ РІСЂРµРјСЏ РїРѕР»РµС‚Р° РІ СЃР°РјРѕРј РґР»РёС‚РµР»СЊРЅРѕРј СЂРµР№СЃРµ?
+
+SELECT date_part('hour', max(f.scheduled_arrival - f.scheduled_departure))*60 + date_part('minute', max(f.scheduled_arrival - f.scheduled_departure)) max_flight_time
+FROM dst_project.flights f
+
+
+Р’РѕРїСЂРѕСЃ 3.В РњРµР¶РґСѓ РєР°РєРёРјРё Р°СЌСЂРѕРїРѕСЂС‚Р°РјРё РїСЂРѕР»РµРіР°РµС‚ СЃР°РјС‹Р№ РґР»РёС‚РµР»СЊРЅС‹Р№ РїРѕ РІСЂРµРјРµРЅРё Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ СЂРµР№СЃ?
+
+SELECT f.departure_airport,
+       f.arrival_airport,
+       (f.scheduled_arrival - f.scheduled_departure) time_scheduled
+FROM dst_project.flights f
+ORDER BY 3 DESC
+LIMIT 1
+
+
+Р’РѕРїСЂРѕСЃ 4.В РЎРєРѕР»СЊРєРѕ СЃРѕСЃС‚Р°РІР»СЏРµС‚ СЃСЂРµРґРЅСЏСЏ РґР°Р»СЊРЅРѕСЃС‚СЊ РїРѕР»РµС‚Р° СЃСЂРµРґРё РІСЃРµС… СЃР°РјРѕР»РµС‚РѕРІ РІ РјРёРЅСѓС‚Р°С…? РЎРµРєСѓРЅРґС‹ РѕРєСЂСѓРіР»СЏСЋС‚СЃСЏ РІ РјРµРЅСЊС€СѓСЋ СЃС‚РѕСЂРѕРЅСѓ (РѕС‚Р±СЂР°СЃС‹РІР°СЋС‚СЃСЏ РґРѕ РјРёРЅСѓС‚).
+
+WITH avg_time AS
+  (SELECT avg(f.actual_arrival - f.actual_departure) avg_flight_time
+   FROM dst_project.flights f
+   WHERE f.actual_arrival IS NOT NULL
+     AND f.actual_departure IS NOT NULL ),
+     minute_time AS
+  (SELECT date_trunc('minute', avg(av_t.avg_flight_time)) min_time
+   FROM avg_time AS av_t)
+SELECT time_avg.min_time AS mean_total_as_is,
+       (date_part('hour', time_avg.min_time)*60 + date_part('minute', time_avg.min_time)) AS in_minutes
+FROM minute_time AS time_avg
+
+*****
+
+Р—Р°РґР°РЅРёРµ 4.5
+
+Р’РѕРїСЂРѕСЃ 1.В РњРµСЃС‚ РєР°РєРѕРіРѕ РєР»Р°СЃСЃР° СѓВ SU9В Р±РѕР»СЊС€Рµ РІСЃРµРіРѕ?
+
+SELECT s.fare_conditions,
+       count(s.seat_no)
+FROM dst_project.seats s
+WHERE aircraft_code = 'SU9'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1
+
+
+Р’РѕРїСЂРѕСЃ 2.В РљР°РєСѓСЋ СЃР°РјСѓСЋ РјРёРЅРёРјР°Р»СЊРЅСѓСЋ СЃС‚РѕРёРјРѕСЃС‚СЊ СЃРѕСЃС‚Р°РІРёР»Рѕ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ Р·Р° РІСЃСЋ РёСЃС‚РѕСЂРёСЋ?
+
+SELECT min(b.total_amount)
+FROM dst_project.bookings b
+
+
+Р’РѕРїСЂРѕСЃ 3.В РљР°РєРѕР№ РЅРѕРјРµСЂ РјРµСЃС‚Р° Р±С‹Р» Сѓ РїР°СЃСЃР°Р¶РёСЂР° СЃВ id = 4313 788533?
+
+SELECT t.passenger_id,
+       b.seat_no
+FROM dst_project.tickets t
+JOIN dst_project.boarding_passes b ON t.ticket_no = b.ticket_no
+WHERE t.passenger_id = '4313 788533'
+
+*****
+
+Р—Р°РґР°РЅРёРµ 5.1
+
+Р’РѕРїСЂРѕСЃ 1.В РђРЅР°РїР° вЂ” РєСѓСЂРѕСЂС‚РЅС‹Р№ РіРѕСЂРѕРґ РЅР° СЋРіРµ Р РѕСЃСЃРёРё. РЎРєРѕР»СЊРєРѕ СЂРµР№СЃРѕРІ РїСЂРёР±С‹Р»Рѕ РІ РђРЅР°РїСѓ Р·Р° 2017 РіРѕРґ?
+
+SELECT a.city,
+       count(f.flight_id)
+FROM dst_project.airports a
+JOIN dst_project.flights f ON a.airport_code = f.arrival_airport
+WHERE city = 'Anapa'
+  AND f.status = 'Arrived'
+  AND f.actual_arrival BETWEEN '2017-01-01' AND '2017-12-31'
+GROUP BY 1
+
+
+Р’РѕРїСЂРѕСЃ 2.В РЎРєРѕР»СЊРєРѕ СЂРµР№СЃРѕРІ РёР· РђРЅР°РїС‹ РІС‹Р»РµС‚РµР»Рѕ Р·РёРјРѕР№ 2017 РіРѕРґР°?
+
+SELECT a.city,
+       count(f.flight_id)
+FROM dst_project.airports a
+JOIN dst_project.flights f ON a.airport_code = f.arrival_airport
+WHERE city = 'Anapa'
+  AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01',
+                                                      '2017-02-01',
+                                                      '2017-12-31'))
+  AND f.status not in ('Cancelled')
+GROUP BY 1
+
+
+Р’РѕРїСЂРѕСЃ 3.В РџРѕСЃС‡РёС‚Р°Р№С‚Рµ РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚РјРµРЅРµРЅРЅС‹С… СЂРµР№СЃРѕРІ РёР· РђРЅР°РїС‹ Р·Р° РІСЃРµ РІСЂРµРјСЏ.
+
+SELECT f.departure_airport,
+       count(f.flight_id)
+FROM dst_project.airports a
+JOIN dst_project.flights f ON a.airport_code = f.arrival_airport
+WHERE f.departure_airport = 'AAQ'
+  AND f.status = 'Cancelled'
+GROUP BY 1
+
+
+Р’РѕРїСЂРѕСЃ 4.В РЎРєРѕР»СЊРєРѕ СЂРµР№СЃРѕРІ РёР· РђРЅР°РїС‹ РЅРµ Р»РµС‚Р°СЋС‚ РІ РњРѕСЃРєРІСѓ?
+
+WITH Moscow_airports AS
+  (SELECT a.city,
+          a.airport_code
+   FROM dst_project.airports a
+   WHERE a.city in ('Moscow')
+   GROUP BY 1,
+            2)
+SELECT count(f.flight_id)
+FROM dst_project.flights f
+WHERE departure_airport = 'AAQ'
+  AND f.arrival_airport not in
+    (SELECT Moscow_airports.airport_code
+     FROM Moscow_airports)
+
+
+Р’РѕРїСЂРѕСЃ 5.В РљР°РєР°СЏ РјРѕРґРµР»СЊ СЃР°РјРѕР»РµС‚Р° Р»РµС‚СЏС‰РµРіРѕ РЅР° СЂРµР№СЃР°С… РёР· РђРЅР°РїС‹ РёРјРµРµС‚ Р±РѕР»СЊС€Рµ РІСЃРµРіРѕ РјРµСЃС‚?
+
+РњРµСЃС‚Р° РѕРїСЂРµРґРµР»СЏСЋС‚ СЃС…РµРјСѓ СЃР°Р»РѕРЅР° РєР°Р¶РґРѕР№ РјРѕРґРµР»Рё. РЎРєРѕР»СЊРєРѕ РјРµСЃС‚ РёРјРµРµС‚ СЃР°РјРѕР»РµС‚ РјРѕРґРµР»РёВ В 773 (Boeing 777-300)?
+
+SELECT count(s.seat_no)
+FROM dst_project.seats s
+JOIN dst_project.aircrafts a ON a.aircraft_code = s.aircraft_code
+WHERE model = 'Boeing 777-300'
+
+*****
+
+РС‚РѕРіРѕРІС‹Р№ РґРѕС‚Р°СЃРµС‚
+
+WITH fly AS
   (SELECT f.flight_id AS fly_id,
           f.departure_airport AS dep_airport,
           f.arrival_airport AS arr_airport,
@@ -55,11 +280,11 @@ LEFT JOIN price ON price.fl_id = fly.fly_id
 ORDER BY 1,3
 
 
-‘сылки на дополнительный материал
-[Џустые рейсы. Џочему самолеты иногда летают без пассажиров?](https://34travel.me/post/ghost-flights)
-[Ѓилет на самолет: сколько получает авиакомпаниЯ?](https://www.avianews.com/airlines/advice/2012/21_07_airline_costs.shtml)
-[”…„…ђЂ‹њЌЋ… Ђѓ…Ќ’‘’‚Ћ ‚Ћ‡„“ЌЋѓЋ ’ђЂЌ‘ЏЋђ’Ђ](https://favt.gov.ru/stat-date-gsm-price/?id=7329![image.png](attachment:image.png))
+РЎСЃС‹Р»РєРё РЅР° РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Р№ РјР°С‚РµСЂРёР°Р»
+[РџСѓСЃС‚С‹Рµ СЂРµР№СЃС‹. РџРѕС‡РµРјСѓ СЃР°РјРѕР»РµС‚С‹ РёРЅРѕРіРґР° Р»РµС‚Р°СЋС‚ Р±РµР· РїР°СЃСЃР°Р¶РёСЂРѕРІ?](https://34travel.me/post/ghost-flights)
+[Р‘РёР»РµС‚ РЅР° СЃР°РјРѕР»РµС‚: СЃРєРѕР»СЊРєРѕ РїРѕР»СѓС‡Р°РµС‚ Р°РІРёР°РєРѕРјРїР°РЅРёСЏ?](https://www.avianews.com/airlines/advice/2012/21_07_airline_costs.shtml)
+[Р¤Р•Р”Р•Р РђР›Р¬РќРћР• РђР“Р•РќРўРЎРўР’Рћ Р’РћР—Р”РЈРЁРќРћР“Рћ РўР РђРќРЎРџРћР РўРђ](https://favt.gov.ru/stat-date-gsm-price/?id=7329![image.png](attachment:image.png))
 [Boeing 737-300](https://www.airlines-inform.ru/commercial-aircraft/boeing-737-300.html)  
 [SuperJet 100](https://www.airlines-inform.ru/commercial-aircraft/superjet-100.html)  
-[SuperJet 100](https://ru.wikipedia.org/wiki/Sukhoi_Superjet_100#‹Ютно-технические_характеристики)  
+[SuperJet 100](https://ru.wikipedia.org/wiki/Sukhoi_Superjet_100#Р›С‘С‚РЅРѕ-С‚РµС…РЅРёС‡РµСЃРєРёРµ_С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё)  
 [SuperJet 100](http://superjet.wikidot.com/wiki:fuel-real-flight)  
